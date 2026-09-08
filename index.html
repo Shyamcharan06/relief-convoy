@@ -1,0 +1,1349 @@
+<title>Relief Convoy</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --bg:#eef1f2; --surface:#ffffff; --surface-2:#f4f6f7; --surface-3:#e9edee;
+  --border:#dbe1e4; --border-strong:#c3ccd0;
+  --text:#171b1e; --text-dim:#58636b; --text-muted:#7d878e;
+  --accent:#d9600f; --accent-ink:#ffffff; --accent-soft:#fbe4d2;
+  --accent2:#1f7ab8; --accent2-soft:#dbeaf5;
+  --good:#1f8f52; --good-soft:#dcf1e5;
+  --warning:#a8720a; --warning-soft:#f6e8cc;
+  --critical:#c53838; --critical-soft:#f8dcdc;
+  --shadow: 0 1px 2px rgba(20,24,27,0.06);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14181c; --surface:#1b2126; --surface-2:#20272c; --surface-3:#262e34;
+    --border:rgba(255,255,255,0.09); --border-strong:rgba(255,255,255,0.16);
+    --text:#eef1f3; --text-dim:#9aa5ac; --text-muted:#6d7780;
+    --accent:#ff8a3d; --accent-ink:#20130a; --accent-soft:#3a2415;
+    --accent2:#5cb0e8; --accent2-soft:#183246;
+    --good:#3fbd79; --good-soft:#123422;
+    --warning:#e8b23d; --warning-soft:#3a2d0e;
+    --critical:#e5686b; --critical-soft:#3a1616;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14181c; --surface:#1b2126; --surface-2:#20272c; --surface-3:#262e34;
+  --border:rgba(255,255,255,0.09); --border-strong:rgba(255,255,255,0.16);
+  --text:#eef1f3; --text-dim:#9aa5ac; --text-muted:#6d7780;
+  --accent:#ff8a3d; --accent-ink:#20130a; --accent-soft:#3a2415;
+  --accent2:#5cb0e8; --accent2-soft:#183246;
+  --good:#3fbd79; --good-soft:#123422;
+  --warning:#e8b23d; --warning-soft:#3a2d0e;
+  --critical:#e5686b; --critical-soft:#3a1616;
+  --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  color-scheme: dark;
+}
+
+*{box-sizing:border-box;}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:"IBM Plex Sans",system-ui,sans-serif;
+  font-size:14px; line-height:1.5;
+}
+h1,h2,h3,h4{ font-family:"Barlow Condensed",system-ui,sans-serif; font-weight:700; text-wrap:balance; margin:0; letter-spacing:0.01em;}
+code, .mono, .num{ font-family:"IBM Plex Mono",monospace; }
+.num{ font-variant-numeric: tabular-nums; }
+a{ color:var(--accent2); }
+button{ font-family:inherit; }
+::selection{ background:var(--accent-soft); }
+
+.eyebrow{ text-transform:uppercase; letter-spacing:0.12em; font-size:11px; color:var(--text-muted); font-weight:600; }
+
+/* ---------- Shell layout ---------- */
+.shell{ display:flex; min-height:100vh; }
+
+.sidebar{
+  width:230px; flex:none; background:var(--surface); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; padding:18px 14px; gap:22px;
+  position:sticky; top:0; height:100vh; overflow-y:auto;
+}
+.brand{ display:flex; align-items:center; gap:10px; padding:2px 4px 10px; border-bottom:1px solid var(--border); }
+.brand-mark{
+  width:34px;height:34px;border-radius:8px;background:var(--accent);color:var(--accent-ink);
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;
+}
+.brand-text h1{ font-size:19px; line-height:1; color:var(--text); }
+.brand-text .eyebrow{ margin-top:3px; }
+
+.nav{ display:flex; flex-direction:column; gap:3px; }
+.nav-btn{
+  display:flex; align-items:center; gap:10px; text-align:left; width:100%;
+  padding:9px 10px; border-radius:7px; border:1px solid transparent; background:none;
+  color:var(--text-dim); font-size:13.5px; font-weight:500; cursor:pointer;
+}
+.nav-btn .ic{ font-size:15px; width:18px; text-align:center; flex:none; }
+.nav-btn:hover{ background:var(--surface-2); color:var(--text); }
+.nav-btn.active{ background:var(--accent-soft); color:var(--accent); border-color:transparent; font-weight:600; }
+.nav-step{ font-family:"IBM Plex Mono",monospace; font-size:10.5px; opacity:0.6; width:14px; }
+
+.sidebar-foot{ margin-top:auto; padding-top:12px; border-top:1px solid var(--border); }
+.pipeline-mini{ display:flex; flex-direction:column; gap:6px; font-size:11px; color:var(--text-muted); }
+.pipeline-mini .row{ display:flex; align-items:center; gap:6px; }
+.pipeline-mini .dot{ width:6px;height:6px;border-radius:50%; background:var(--border-strong); flex:none; }
+.pipeline-mini .dot.on{ background:var(--good); }
+
+.main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+
+.topbar{
+  display:flex; align-items:center; gap:22px; padding:12px 26px; border-bottom:1px solid var(--border);
+  background:var(--surface); flex-wrap:wrap; position:sticky; top:0; z-index:5;
+}
+.topbar .tstat{ display:flex; flex-direction:column; gap:1px; }
+.topbar .tstat .l{ font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); }
+.topbar .tstat .v{ font-size:16px; font-weight:600; }
+.topbar .spacer{ flex:1; }
+.topbar .badge-live{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text-muted); }
+.blip{ width:7px;height:7px;border-radius:50%; background:var(--good); box-shadow:0 0 0 3px var(--good-soft); }
+
+.content{ padding:24px 28px 60px; max-width:1180px; width:100%; margin:0 auto; }
+.panel{ display:none; flex-direction:column; gap:20px; }
+.panel.active{ display:flex; }
+
+.panel-head{ display:flex; align-items:baseline; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+.panel-head h2{ font-size:28px; }
+.panel-head p{ color:var(--text-dim); font-size:13px; margin-top:2px; max-width:60ch; }
+
+.card{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:18px 20px; }
+.card-title{ font-size:12.5px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); font-weight:600; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;}
+.card-title .hint{ text-transform:none; letter-spacing:0; font-weight:400; color:var(--text-muted); font-size:11.5px; }
+
+.grid-2{ display:grid; grid-template-columns:1.1fr 0.9fr; gap:18px; }
+.grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+@media(max-width:920px){ .grid-2{grid-template-columns:1fr;} .grid-3{grid-template-columns:repeat(2,1fr);} }
+
+/* form controls */
+label{ display:block; font-size:11.5px; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.06em; }
+input[type=text], input[type=number], select{
+  width:100%; padding:8px 10px; border-radius:6px; border:1px solid var(--border-strong);
+  background:var(--surface-2); color:var(--text); font-size:13.5px; font-family:inherit;
+}
+input:focus, select:focus, button:focus-visible{ outline:2px solid var(--accent2); outline-offset:1px; }
+.field{ margin-bottom:10px; }
+.field-row{ display:grid; grid-template-columns:repeat(4,1fr) auto; gap:10px; align-items:end; }
+.field-row-3{ display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:10px; align-items:end; }
+@media(max-width:860px){ .field-row, .field-row-3{ grid-template-columns:1fr 1fr; } }
+
+.check-inline{ display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--text-dim); text-transform:none; letter-spacing:0; padding-bottom:8px;}
+.check-inline input{ width:15px;height:15px; }
+
+.btn{
+  display:inline-flex; align-items:center; gap:7px; justify-content:center; white-space:nowrap;
+  padding:9px 15px; border-radius:7px; border:1px solid var(--border-strong); background:var(--surface-2);
+  color:var(--text); font-size:13px; font-weight:600; cursor:pointer;
+}
+.btn:hover{ background:var(--surface-3); }
+.btn.primary{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+.btn.primary:hover{ filter:brightness(1.06); }
+.btn.ghost{ background:none; border-color:transparent; color:var(--text-dim); padding:6px 8px;}
+.btn.ghost:hover{ background:var(--surface-2); color:var(--text); }
+.btn.danger{ color:var(--critical); }
+.btn.sm{ padding:5px 10px; font-size:12px; }
+.btn:disabled{ opacity:0.45; cursor:not-allowed; }
+
+/* tables */
+.tbl-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:8px; }
+table{ border-collapse:collapse; width:100%; font-size:13px; }
+th,td{ padding:8px 10px; border-bottom:1px solid var(--border); text-align:left; white-space:nowrap; }
+thead th{ background:var(--surface-2); color:var(--text-muted); font-size:11px; text-transform:uppercase; letter-spacing:0.05em; font-weight:600; position:sticky; top:0; }
+tbody tr:last-child td{ border-bottom:none; }
+tbody tr:hover{ background:var(--surface-2); }
+td.num, th.num{ text-align:right; font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; }
+
+.pill{ display:inline-flex; align-items:center; gap:5px; padding:2px 9px; border-radius:99px; font-size:11px; font-weight:600; }
+.pill.acc{ background:var(--accent-soft); color:var(--accent); }
+.pill.acc2{ background:var(--accent2-soft); color:var(--accent2); }
+.pill.good{ background:var(--good-soft); color:var(--good); }
+.pill.warn{ background:var(--warning-soft); color:var(--warning); }
+.pill.crit{ background:var(--critical-soft); color:var(--critical); }
+.pill.neutral{ background:var(--surface-3); color:var(--text-dim); }
+
+/* stat tiles */
+.stat{ background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--border-strong); border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:3px; }
+.stat.acc{ border-left-color:var(--accent); }
+.stat.acc2{ border-left-color:var(--accent2); }
+.stat .l{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-muted); }
+.stat .v{ font-size:22px; font-weight:600; font-family:"IBM Plex Mono",monospace; }
+.stat .s{ font-size:11px; color:var(--text-dim); }
+
+.section-lbl{ font-size:12.5px; text-transform:uppercase; letter-spacing:0.09em; color:var(--text-muted); font-weight:600; margin:4px 0 -6px; }
+
+/* capacity bar */
+.capbar{ height:10px; border-radius:99px; background:var(--surface-3); overflow:hidden; display:flex; border:1px solid var(--border); }
+.capbar .seg{ height:100%; }
+.capbar .seg.a{ background:var(--accent); }
+.capbar .seg.b{ background:var(--accent2); }
+.caplegend{ display:flex; gap:16px; font-size:11.5px; color:var(--text-dim); margin-top:6px; flex-wrap:wrap; }
+.caplegend .sw{ display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:-1px; }
+
+/* DP table */
+.dp-tbl td.cell{ text-align:right; font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; position:relative; }
+.dp-tbl td.cell.path{ outline:2px solid var(--accent); outline-offset:-2px; font-weight:700; color:var(--accent); background:var(--accent-soft) !important; }
+.dp-tbl th.wcol{ font-family:"IBM Plex Mono",monospace; }
+.dp-tbl td.rowhead, .dp-tbl th.rowhead{ position:sticky; left:0; background:var(--surface-2); text-align:left; font-weight:600; z-index:1; }
+
+/* map */
+.map-wrap{ display:grid; grid-template-columns:1fr 300px; gap:16px; }
+@media(max-width:980px){ .map-wrap{ grid-template-columns:1fr; } }
+.map-svg-box{ background:var(--surface-2); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.map-svg-box svg{ width:100%; height:auto; display:block; cursor:grab; }
+.node-circle{ fill:var(--surface); stroke:var(--text-dim); stroke-width:1.6; }
+.node-circle.warehouse{ stroke:var(--accent); stroke-width:2.4; }
+.node-label{ font-family:"IBM Plex Sans",sans-serif; font-size:11px; font-weight:600; fill:var(--text); }
+.node-icon{ font-size:15px; }
+.edge-line{ stroke:var(--border-strong); stroke-width:2.5; }
+.edge-line.blocked{ stroke:var(--critical); stroke-dasharray:6 5; }
+.edge-line.route{ stroke:var(--accent); stroke-width:4; }
+.edge-dist{ font-family:"IBM Plex Mono",monospace; font-size:10.5px; fill:var(--text-dim); }
+.edge-x{ font-size:13px; fill:var(--critical); font-weight:700; }
+.map-legend{ display:flex; gap:14px; flex-wrap:wrap; font-size:11px; color:var(--text-muted); padding:8px 4px 0; }
+
+.edge-row, .dest-row{ display:flex; align-items:center; gap:8px; padding:7px 4px; border-bottom:1px solid var(--border); font-size:12.5px; }
+.edge-row:last-child, .dest-row:last-child{ border-bottom:none; }
+.edge-row .lbl{ flex:1; }
+.edge-row .dist{ font-family:"IBM Plex Mono",monospace; color:var(--text-dim); width:44px; text-align:right; }
+.toggle{ position:relative; width:34px; height:18px; border-radius:99px; background:var(--good); border:none; cursor:pointer; flex:none; }
+.toggle.off{ background:var(--critical); }
+.toggle::after{ content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#fff; transition:left .12s; }
+.toggle.off::after{ left:18px; }
+
+.callout{ border-radius:9px; padding:12px 14px; font-size:13px; display:flex; gap:10px; align-items:flex-start; border:1px solid var(--border); }
+.callout.crit{ background:var(--critical-soft); border-color:transparent; color:var(--critical); }
+.callout.good{ background:var(--good-soft); border-color:transparent; color:var(--good); }
+.callout .ic{ font-size:16px; flex:none; }
+.callout b{ color:inherit; }
+.callout .body{ color:var(--text); }
+.callout .body b{ font-family:"IBM Plex Mono",monospace; }
+
+.route-strip{ display:flex; align-items:center; flex-wrap:wrap; gap:4px; font-size:13px; }
+.route-strip .stop{ background:var(--surface-2); border:1px solid var(--border); padding:5px 11px; border-radius:99px; font-weight:600; }
+.route-strip .stop.wh{ background:var(--accent-soft); color:var(--accent); border-color:transparent; }
+.route-strip .arrow{ color:var(--text-muted); }
+
+.empty{ padding:22px; text-align:center; color:var(--text-muted); font-size:13px; border:1px dashed var(--border-strong); border-radius:8px; }
+
+@keyframes flashUpdate{ 0%{ background:var(--accent-soft); } 100%{ background:transparent; } }
+.flash-update{ animation:flashUpdate 0.8s ease; border-radius:6px; }
+@media (prefers-reduced-motion: reduce){ .flash-update{ animation:none; } }
+
+/* algorithm trace */
+.trace-step{ font-size:12.5px; font-weight:600; color:var(--text); margin:18px 0 8px; display:flex; align-items:center; gap:8px; }
+.trace-step:first-child{ margin-top:0; }
+.trace-step .n{ width:20px; height:20px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-size:11px; display:flex; align-items:center; justify-content:center; font-weight:700; flex:none; font-family:"IBM Plex Mono",monospace; }
+.trace-note{ font-size:11.5px; color:var(--text-muted); margin:0 0 10px; }
+td.self{ background:var(--surface-2); color:var(--text-muted); }
+
+/* report */
+.report-doc{ background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.report-band{ background:var(--text); color:var(--bg); padding:18px 24px; }
+.report-band .eyebrow{ color:var(--bg); opacity:0.6; }
+.report-band h2{ color:var(--bg); font-size:24px; }
+.report-body{ padding:20px 24px; display:flex; flex-direction:column; gap:18px; }
+.report-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+@media(max-width:800px){ .report-grid{ grid-template-columns:1fr; } }
+.report-block h4{ font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:6px; }
+.report-line{ display:flex; justify-content:space-between; font-size:13.5px; padding:3px 0; }
+.report-line .k{ color:var(--text-dim); }
+.report-line .v{ font-family:"IBM Plex Mono",monospace; font-weight:600; }
+.algo-check{ display:flex; align-items:center; gap:8px; font-size:13.5px; padding:4px 0; }
+.algo-check .ic{ color:var(--good); font-weight:700; }
+
+@media print{
+  .sidebar, .topbar, .panel-head, .no-print{ display:none !important; }
+  body{ background:#fff; color:#000; }
+  .panel{ display:none !important; }
+  #panel-report{ display:flex !important; }
+  .content{ max-width:none; padding:0; }
+  .report-doc{ border:none; }
+}
+</style>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">🚚</div>
+      <div class="brand-text">
+        <h1>Relief Convoy</h1>
+        <div class="eyebrow">Disaster logistics planner</div>
+      </div>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="nav-btn active" data-tab="cargo"><span class="nav-step">01</span><span class="ic">📦</span>Cargo Manifest</button>
+      <button class="nav-btn" data-tab="load"><span class="nav-step">02</span><span class="ic">⚖️</span>Load Plan</button>
+      <button class="nav-btn" data-tab="map"><span class="nav-step">03</span><span class="ic">🗺️</span>Route &amp; Roads</button>
+      <button class="nav-btn" data-tab="dashboard"><span class="nav-step">04</span><span class="ic">📊</span>Mission Dashboard</button>
+      <button class="nav-btn" data-tab="report"><span class="nav-step">05</span><span class="ic">📄</span>Mission Report</button>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="section-lbl" style="margin-bottom:8px;">Pipeline status</div>
+      <div class="pipeline-mini" id="pipelineMini"></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="tstat"><div class="l">Truck capacity</div><div class="v num" id="topCap">—</div></div>
+      <div class="tstat"><div class="l">Load / used</div><div class="v num" id="topLoad">—</div></div>
+      <div class="tstat"><div class="l">Total value</div><div class="v num" id="topValue">—</div></div>
+      <div class="tstat"><div class="l">Route distance</div><div class="v num" id="topDist">—</div></div>
+      <div class="tstat"><div class="l">Blocked roads</div><div class="v num" id="topBlocked">—</div></div>
+      <div class="spacer"></div>
+      <div class="badge-live"><span class="blip"></span>Live recalculation</div>
+    </div>
+
+    <div class="content">
+
+      <!-- ===================== CARGO ===================== -->
+      <section class="panel active" id="panel-cargo">
+        <div class="panel-head">
+          <div><h2>Cargo Manifest</h2><p>Enter every relief item on offer. The planner splits them automatically: whole units go through 0/1 Knapsack, bulk goods go through Fractional Knapsack.</p></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Add a resource</div>
+          <div class="field-row" id="resForm">
+            <div class="field"><label>Name</label><input type="text" id="rName" placeholder="e.g. Water"></div>
+            <div class="field"><label>Weight / unit (kg)</label><input type="number" id="rWeight" min="0.1" step="0.1" value="10"></div>
+            <div class="field"><label>Priority / unit</label><input type="number" id="rPriority" min="0" step="1" value="10"></div>
+            <div class="field"><label>Quantity</label><input type="number" id="rQty" min="1" step="1" value="1"></div>
+            <div class="field" style="display:flex;flex-direction:column;">
+              <span class="check-inline"><input type="checkbox" id="rSplit"> Splittable (bulk)</span>
+              <button class="btn primary" id="addResBtn">+ Add</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Manifest <span class="hint" id="manifestCount"></span></div>
+          <div class="tbl-wrap">
+            <table id="manifestTbl">
+              <thead><tr><th>Resource</th><th>Class</th><th class="num">Wt/unit</th><th class="num">Priority/unit</th><th class="num">Qty</th><th class="num">Total kg</th><th class="num">Total value</th><th class="num">Value density</th><th></th></tr></thead>
+              <tbody id="manifestBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Truck</div>
+          <div class="field" style="max-width:240px;">
+            <label>Total capacity (kg)</label>
+            <input type="number" id="truckCap" min="1" step="10" value="500">
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== LOAD PLAN ===================== -->
+      <section class="panel" id="panel-load">
+        <div class="panel-head">
+          <div><h2>Load Plan</h2><p>Unsplittable items are chosen whole by 0/1 Knapsack; leftover capacity is filled fractionally with bulk goods, ranked by value per kg.</p></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Capacity allocation</div>
+          <div id="capBarWrap"></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">0/1 Knapsack — unsplittable items <span class="hint">O(n·W)</span></div>
+            <div id="knapOut"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Fractional Knapsack — bulk goods <span class="hint">O(n log n)</span></div>
+            <div id="fracOut"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">How 0/1 Knapsack chose these items <span class="hint">0/1 Knapsack</span></div>
+          <div id="knapTrace"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">How Fractional Knapsack filled the rest <span class="hint">Fractional Knapsack</span></div>
+          <div id="fracTrace"></div>
+        </div>
+      </section>
+
+      <!-- ===================== MAP ===================== -->
+      <section class="panel" id="panel-map">
+        <div class="panel-head">
+          <div><h2>Route &amp; Roads</h2><p>Build the relief network, choose which stops the truck must reach, then let TSP (Dynamic Programming) find the shortest loop from the warehouse. Block a road to see the route adapt.</p></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn ghost" id="clearBlocksBtn">Clear all blocks</button>
+            <button class="btn primary" id="runTspBtn">▶ Run TSP</button>
+          </div>
+        </div>
+
+        <div class="card" style="border-color:var(--critical);">
+          <div class="card-title">🚨 Report a disaster</div>
+          <div class="field-row-3">
+            <div class="field"><label>Event type</label>
+              <select id="disasterType">
+                <option value="🌊 Flood">🌊 Flood</option>
+                <option value="⛰️ Landslide">⛰️ Landslide</option>
+                <option value="🌉 Bridge collapse">🌉 Bridge collapse</option>
+                <option value="🏚️ Earthquake damage">🏚️ Earthquake damage</option>
+              </select>
+            </div>
+            <div class="field"><label>Where</label>
+              <select id="disasterTarget"></select>
+            </div>
+            <div class="field"></div>
+            <button class="btn danger" id="triggerDisasterBtn" style="border-color:var(--critical);">Block road(s) &amp; reroute</button>
+          </div>
+          <p style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">Pick a single road, or an entire location to cut off every road touching it — the truck reroutes automatically.</p>
+        </div>
+
+        <div id="blockBanner"></div>
+
+        <div class="map-wrap">
+          <div>
+            <div class="map-svg-box"><svg id="mapSvg" viewBox="0 0 640 420"></svg></div>
+            <div class="map-legend">
+              <span>🏭 Warehouse</span><span>⛺ Camp</span><span>➕ Hospital</span><span>⚠️ Affected area</span>
+              <span style="margin-left:auto;">— open road &nbsp; ┅ blocked &nbsp; <span style="color:var(--accent);font-weight:700;">—</span> route</span>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div class="card" style="padding:14px 16px;">
+              <div class="card-title">Add location</div>
+              <div class="field"><label>Name</label><input type="text" id="nodeName" placeholder="e.g. Camp E"></div>
+              <div class="field"><label>Type</label>
+                <select id="nodeType"><option value="camp">Relief camp</option><option value="hospital">Hospital</option><option value="affected">Affected area</option><option value="warehouse">Warehouse</option></select>
+              </div>
+              <button class="btn sm" id="addNodeBtn" style="width:100%;">+ Place on map</button>
+              <p style="font-size:11px;color:var(--text-muted);margin-top:6px;">Every location has a direct road to every other, so a new one is auto-connected to all of them. Drag any marker to rearrange the map — that doesn't change distances.</p>
+            </div>
+            <div class="card" style="padding:14px 16px;">
+              <div class="card-title">Edit a road's distance</div>
+              <div class="field"><label>From</label><select id="edgeFrom"></select></div>
+              <div class="field"><label>To</label><select id="edgeTo"></select></div>
+              <div class="field"><label>Distance (km)</label><input type="number" id="edgeDist" min="1" step="1" value="10"></div>
+              <button class="btn sm" id="addEdgeBtn" style="width:100%;">Set distance</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Must-visit destinations <span class="hint">warehouse is always the start &amp; end</span></div>
+            <div id="destList"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Roads <span class="hint">toggle to block / reopen</span></div>
+            <div id="edgeList"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Optimal route <span class="hint" id="tspHint"></span></div>
+          <div id="routeOut"></div>
+          <p style="font-size:11px;color:var(--text-muted);margin-top:10px;" id="lastRunNote"></p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">How the algorithm found this route <span class="hint">TSP</span></div>
+          <div id="tspTrace"></div>
+        </div>
+      </section>
+
+      <!-- ===================== DASHBOARD ===================== -->
+      <section class="panel" id="panel-dashboard">
+        <div class="panel-head"><div><h2>Mission Dashboard</h2><p>A single view of load efficiency, route efficiency, and the cost of running each algorithm.</p></div></div>
+
+        <div class="section-lbl">Resource optimization</div>
+        <div class="grid-3" id="dashResources"></div>
+
+        <div class="section-lbl">Route optimization</div>
+        <div class="grid-3" id="dashRoute"></div>
+
+        <div class="section-lbl">Algorithm performance</div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Algorithm</th><th>Complexity</th><th class="num">Input size</th><th class="num">States / ops</th><th class="num">Time</th></tr></thead>
+              <tbody id="perfBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== REPORT ===================== -->
+      <section class="panel" id="panel-report">
+        <div class="panel-head no-print">
+          <div><h2>Mission Report</h2><p>A shareable summary of the load plan, route, and the effect of any road blockages.</p></div>
+          <button class="btn primary" id="printBtn">🖨 Print / Save PDF</button>
+        </div>
+        <div class="report-doc" id="reportDoc"></div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------- utilities ---------------- */
+const $ = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+const uid = (p)=> p+"_"+Math.random().toString(36).slice(2,9);
+const esc = (s)=> String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = (n, d)=> Number(n).toLocaleString(undefined,{maximumFractionDigits: d===undefined?1:d, minimumFractionDigits:0});
+const clamp = (n,lo,hi)=> Math.max(lo,Math.min(hi,n));
+const TYPE_ICON = {warehouse:"🏭", camp:"⛺", hospital:"➕", affected:"⚠️"};
+
+/* ---------------- state + seed data ---------------- */
+const state = {
+  truckCapacity: 500,
+  fracAuto: true,
+  fracCapacityOverride: 100,
+  resources: [
+    {id:uid("r"), name:"Medicine Kit",     weight:5,   priority:45,  qty:12, splittable:false},
+    {id:uid("r"), name:"Generator",        weight:120, priority:260, qty:2,  splittable:false},
+    {id:uid("r"), name:"Blanket Bundle",   weight:15,  priority:20,  qty:10, splittable:false},
+    {id:uid("r"), name:"Emergency Tool Kit",weight:25,  priority:55,  qty:4,  splittable:false},
+    {id:uid("r"), name:"Food Package",     weight:20,  priority:50,  qty:8,  splittable:false},
+    {id:uid("r"), name:"Water",            weight:1,   priority:8,   qty:250,splittable:true},
+    {id:uid("r"), name:"Fuel",             weight:1,   priority:6,   qty:150,splittable:true},
+    {id:uid("r"), name:"Grain",            weight:1,   priority:4,   qty:300,splittable:true},
+  ],
+  nodes: [
+    {id:"w", name:"Warehouse", type:"warehouse", x:120, y:230},
+    {id:"a", name:"Camp A",    type:"camp",      x:300, y:70},
+    {id:"c", name:"Camp C",    type:"camp",      x:130, y:380},
+    {id:"b", name:"Camp B",    type:"camp",      x:430, y:320},
+    {id:"d", name:"Camp D",    type:"affected",  x:480, y:110},
+    {id:"h", name:"Hospital",  type:"hospital",  x:580, y:250},
+  ],
+  edges: [
+    {id:uid("e"), a:"w", b:"a", dist:10, blocked:false},
+    {id:uid("e"), a:"w", b:"c", dist:12, blocked:false},
+    {id:uid("e"), a:"a", b:"b", dist:15, blocked:false},
+    {id:uid("e"), a:"c", b:"b", dist:8,  blocked:false},
+    {id:uid("e"), a:"a", b:"c", dist:16, blocked:false},
+    {id:uid("e"), a:"a", b:"d", dist:18, blocked:false},
+    {id:uid("e"), a:"c", b:"d", dist:14, blocked:false},
+    {id:uid("e"), a:"b", b:"h", dist:9,  blocked:false},
+    {id:uid("e"), a:"d", b:"h", dist:11, blocked:false},
+    {id:uid("e"), a:"w", b:"h", dist:24, blocked:false},
+    {id:uid("e"), a:"w", b:"b", dist:21, blocked:false},
+    {id:uid("e"), a:"w", b:"d", dist:23, blocked:false},
+    {id:uid("e"), a:"a", b:"h", dist:17, blocked:false},
+    {id:uid("e"), a:"c", b:"h", dist:25, blocked:false},
+    {id:uid("e"), a:"b", b:"d", dist:19, blocked:false},
+  ],
+  destinations: new Set(["a","b","c","d","h"]),
+  results: { knap:null, frac:null, tsp:null, perf:{} },
+  lastTspDistance: null,
+  dragging: null,
+};
+
+/* ---------------- algorithms ---------------- */
+function knapsack01(items, capacity){
+  const t0 = performance.now();
+  const n = items.length;
+  const cap = Math.max(0, Math.floor(capacity));
+  const dp = new Array(n+1);
+  for(let i=0;i<=n;i++) dp[i] = new Array(cap+1).fill(0);
+  for(let i=1;i<=n;i++){
+    const it = items[i-1];
+    const w = Math.round(it.weight);
+    for(let c=0;c<=cap;c++){
+      dp[i][c] = dp[i-1][c];
+      if(w<=c){
+        const cand = dp[i-1][c-w] + it.value;
+        if(cand > dp[i][c]) dp[i][c] = cand;
+      }
+    }
+  }
+  // backtrack
+  const selected = [];
+  let c = cap;
+  for(let i=n;i>=1;i--){
+    if(dp[i][c] !== dp[i-1][c]){
+      selected.push(items[i-1]);
+      c -= Math.round(items[i-1].weight);
+    }
+  }
+  selected.reverse();
+  const totalWeight = selected.reduce((s,it)=>s+it.weight,0);
+  const totalValue = selected.reduce((s,it)=>s+it.value,0);
+  const t1 = performance.now();
+  return { dp, selected, totalWeight, totalValue, capacity: cap, n, timeMs: t1-t0 };
+}
+
+function fractionalKnapsack(items, capacity){
+  const t0 = performance.now();
+  const cap = Math.max(0, capacity);
+  const ranked = items.map(it=>({...it, density: it.weight>0 ? it.value/it.weight : 0}))
+                       .sort((x,y)=> y.density - x.density);
+  let remaining = cap;
+  const alloc = [];
+  for(const it of ranked){
+    if(remaining <= 0){ alloc.push({...it, takenWeight:0, takenValue:0, fraction:0}); continue; }
+    const take = Math.min(it.weight, remaining);
+    const frac = it.weight>0 ? take/it.weight : 0;
+    alloc.push({...it, takenWeight:take, takenValue: take*it.density, fraction:frac});
+    remaining -= take;
+  }
+  const totalWeight = alloc.reduce((s,a)=>s+a.takenWeight,0);
+  const totalValue = alloc.reduce((s,a)=>s+a.takenValue,0);
+  const t1 = performance.now();
+  return { alloc, totalWeight, totalValue, capacity:cap, unused: Math.max(0,remaining), n: items.length, timeMs:t1-t0 };
+}
+
+function directDist(aId, bId){
+  if(aId===bId) return 0;
+  const e = state.edges.find(x=> (x.a===aId && x.b===bId) || (x.a===bId && x.b===aId));
+  if(!e || e.blocked) return Infinity;
+  return e.dist;
+}
+function directEdge(aId, bId){
+  return state.edges.find(x=> (x.a===aId && x.b===bId) || (x.a===bId && x.b===aId)) || null;
+}
+
+function heldKarpTSP(distSub, n){
+  const t0 = performance.now();
+  if(n<=1) return {order:[0], distance:0, timeMs:0, states:0, dp:null, parent:null, full:0};
+  const FULL = 1<<(n-1);
+  const dp = Array.from({length:FULL}, ()=> new Array(n).fill(Infinity));
+  const parent = Array.from({length:FULL}, ()=> new Array(n).fill(-1));
+  for(let i=1;i<n;i++) dp[1<<(i-1)][i] = distSub[0][i];
+  let states = 0;
+  for(let mask=1; mask<FULL; mask++){
+    for(let i=1;i<n;i++){
+      if(!(mask & (1<<(i-1)))) continue;
+      const cur = dp[mask][i];
+      if(cur===Infinity) continue;
+      for(let j=1;j<n;j++){
+        if(mask & (1<<(j-1))) continue;
+        states++;
+        const nm = mask | (1<<(j-1));
+        const cand = cur + distSub[i][j];
+        if(cand < dp[nm][j]){ dp[nm][j]=cand; parent[nm][j]=i; }
+      }
+    }
+  }
+  const full = FULL-1;
+  let best=Infinity, bestEnd=-1;
+  for(let i=1;i<n;i++){
+    if(dp[full][i]===Infinity) continue;
+    const cand = dp[full][i] + distSub[i][0];
+    if(cand<best){ best=cand; bestEnd=i; }
+  }
+  const t1 = performance.now();
+  if(bestEnd===-1) return {order:null, distance:Infinity, timeMs:t1-t0, states, dp, parent, full};
+  const order=[]; let mask=full, i=bestEnd;
+  while(i!==-1){ order.push(i); const p=parent[mask][i]; mask ^= (1<<(i-1)); i=p; }
+  order.push(0); order.reverse(); order.push(0);
+  return { order, distance:best, timeMs:t1-t0, states, dp, parent, full };
+}
+
+/* ---------------- derived helpers ---------------- */
+function classified(){
+  const un = state.resources.filter(r=>!r.splittable).map(r=>({...r, weight:r.weight*r.qty, value:r.priority*r.qty, unitWeight:r.weight, unitValue:r.priority}));
+  const sp = state.resources.filter(r=>r.splittable).map(r=>({...r, weight:r.weight*r.qty, value:r.priority*r.qty, unitWeight:r.weight, unitValue:r.priority}));
+  return {un, sp};
+}
+
+function nodeName(id){ const n = state.nodes.find(n=>n.id===id); return n? n.name : id; }
+
+/* ---------------- core recompute ---------------- */
+function recompute(opts){
+  opts = opts||{};
+  const {un, sp} = classified();
+  const knap = knapsack01(un, state.truckCapacity);
+  const fracCap = state.fracAuto ? Math.max(0, state.truckCapacity - knap.totalWeight) : state.fracCapacityOverride;
+  const frac = fractionalKnapsack(sp, fracCap);
+
+  const requiredIds = ["w", ...Array.from(state.destinations)];
+  const n = requiredIds.length;
+  const distSub = Array.from({length:n}, (_,i)=> Array.from({length:n}, (_,j)=> directDist(requiredIds[i], requiredIds[j])));
+  const tsp = heldKarpTSP(distSub, n);
+  const tspNamed = tsp.order ? tsp.order.map(i=>requiredIds[i]) : null;
+
+  const prevDist = state.results.tsp ? state.results.tsp.distance : null;
+
+  state.results = {
+    knap, frac, fracCap,
+    tsp: { order: tspNamed, distance: tsp.distance, states: tsp.states, timeMs: tsp.timeMs, n,
+           requiredIds, distSub, dp: tsp.dp, parent: tsp.parent, full: tsp.full, rawOrder: tsp.order },
+    perf: {
+      knap: {n: knap.n, cap: knap.capacity, timeMs: knap.timeMs, ops: knap.n*knap.capacity},
+      frac: {n: frac.n, timeMs: frac.timeMs, ops: Math.max(1,frac.n)},
+      tsp: {n, timeMs: tsp.timeMs, states: tsp.states},
+    }
+  };
+
+  if(opts.blockToggle){
+    state.lastBlockChange = { edgeLabel: opts.blockToggle.label, blocked: opts.blockToggle.blocked, disaster: opts.blockToggle.disaster||null, before: prevDist, after: tsp.distance };
+  }
+  state.lastRunAt = Date.now();
+
+  renderAll();
+}
+
+/* ---------------- rendering ---------------- */
+function renderAll(){
+  renderTopbar();
+  renderPipelineMini();
+  renderCargo();
+  renderLoad();
+  renderMap();
+  renderDashboard();
+  renderReport();
+}
+
+function renderTopbar(){
+  const r = state.results;
+  const used = (r.knap?r.knap.totalWeight:0) + (r.frac?r.frac.totalWeight:0);
+  $("#topCap").textContent = fmt(state.truckCapacity,0)+" kg";
+  $("#topLoad").textContent = fmt(used,0)+" kg";
+  const val = (r.knap?r.knap.totalValue:0)+(r.frac?r.frac.totalValue:0);
+  $("#topValue").textContent = fmt(val,0);
+  $("#topDist").textContent = (r.tsp && isFinite(r.tsp.distance)) ? fmt(r.tsp.distance,1)+" km" : "—";
+  $("#topBlocked").textContent = state.edges.filter(e=>e.blocked).length;
+}
+
+function renderPipelineMini(){
+  const r = state.results;
+  const steps = [
+    ["Resources classified", state.resources.length>0],
+    ["0/1 Knapsack solved", !!r.knap],
+    ["Fractional Knapsack solved", !!r.frac],
+    ["Road network ready", state.nodes.length>1],
+    ["TSP route computed", !!(r.tsp && r.tsp.order)],
+  ];
+  $("#pipelineMini").innerHTML = steps.map(([label,on])=>
+    `<div class="row"><span class="dot ${on?"on":""}"></span>${esc(label)}</div>`).join("");
+}
+
+/* --- Cargo tab --- */
+function renderCargo(){
+  const rows = state.resources.map(r=>{
+    const totalW = r.weight*r.qty, totalV = r.priority*r.qty, dens = r.weight>0? r.priority/r.weight : 0;
+    return `<tr>
+      <td>${esc(r.name)}</td>
+      <td>${r.splittable? '<span class="pill acc2">Splittable</span>' : '<span class="pill acc">Unsplittable</span>'}</td>
+      <td class="num">${fmt(r.weight,2)}</td>
+      <td class="num">${fmt(r.priority,2)}</td>
+      <td class="num">${fmt(r.qty,0)}</td>
+      <td class="num">${fmt(totalW,1)}</td>
+      <td class="num">${fmt(totalV,1)}</td>
+      <td class="num">${fmt(dens,2)}</td>
+      <td><button class="btn ghost sm" data-del-res="${r.id}">✕</button></td>
+    </tr>`;
+  }).join("");
+  $("#manifestBody").innerHTML = rows || `<tr><td colspan="9"><div class="empty">No resources yet — add one above.</div></td></tr>`;
+  const {un,sp} = classified();
+  $("#manifestCount").textContent = `${state.resources.length} items · ${un.length} unsplittable · ${sp.length} splittable`;
+  $("#truckCap").value = state.truckCapacity;
+}
+
+/* --- Load tab --- */
+function renderLoad(){
+  const r = state.results;
+  if(!r.knap) return;
+  const knapPct = clamp(r.knap.totalWeight/state.truckCapacity*100,0,100);
+  const fracPct = clamp(r.frac.totalWeight/state.truckCapacity*100,0,100);
+  const unusedPct = clamp(100-knapPct-fracPct,0,100);
+  $("#capBarWrap").innerHTML = `
+    <div class="capbar"><div class="seg a" style="width:${knapPct}%"></div><div class="seg b" style="width:${fracPct}%"></div></div>
+    <div class="caplegend">
+      <span><span class="sw" style="background:var(--accent)"></span>0/1 Knapsack — ${fmt(r.knap.totalWeight,1)} kg</span>
+      <span><span class="sw" style="background:var(--accent2)"></span>Fractional — ${fmt(r.frac.totalWeight,1)} kg</span>
+      <span><span class="sw" style="background:var(--surface-3);border:1px solid var(--border)"></span>Unused — ${fmt(state.truckCapacity-r.knap.totalWeight-r.frac.totalWeight,1)} kg (${fmt(unusedPct,0)}%)</span>
+    </div>`;
+
+  $("#knapOut").innerHTML = `
+    <div class="grid-3" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px;">
+      <div class="stat acc"><div class="l">Selected</div><div class="v">${r.knap.selected.length}</div></div>
+      <div class="stat acc"><div class="l">Weight</div><div class="v">${fmt(r.knap.totalWeight,0)}<span style="font-size:12px;color:var(--text-muted)"> kg</span></div></div>
+      <div class="stat acc"><div class="l">Priority</div><div class="v">${fmt(r.knap.totalValue,0)}</div></div>
+    </div>
+    ${ r.knap.selected.length ? `<div class="tbl-wrap"><table><thead><tr><th></th><th>Item</th><th class="num">Weight</th><th class="num">Value</th></tr></thead><tbody>
+        ${r.knap.selected.map(it=>`<tr><td>✓</td><td>${esc(it.name)}</td><td class="num">${fmt(it.weight,1)}</td><td class="num">${fmt(it.value,1)}</td></tr>`).join("")}
+      </tbody></table></div>` : `<div class="empty">No unsplittable items fit this capacity.</div>` }
+    <p style="font-size:11.5px;color:var(--text-muted);margin-top:8px;">Unused capacity after 0/1 pass: <b class="num">${fmt(state.truckCapacity-r.knap.totalWeight,1)} kg</b> → carried into the fractional pass.</p>`;
+
+  const fracRows = r.frac.alloc.map(a=>`<tr>
+      <td>${esc(a.name)}</td>
+      <td class="num">${fmt(a.density,2)}/kg</td>
+      <td class="num">${fmt(a.takenWeight,1)}</td>
+      <td class="num">${fmt(a.fraction*100,0)}%</td>
+      <td class="num">${fmt(a.takenValue,1)}</td>
+    </tr>`).join("");
+  $("#fracOut").innerHTML = `
+    <div class="grid-3" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px;">
+      <div class="stat acc2"><div class="l">Capacity used</div><div class="v">${fmt(r.frac.capacity,0)}<span style="font-size:12px;color:var(--text-muted)"> kg</span></div>
+        <div class="s">${state.fracAuto? "auto = leftover after 0/1 pass" : "manual override"}</div></div>
+      <div class="stat acc2"><div class="l">Weight taken</div><div class="v">${fmt(r.frac.totalWeight,0)}<span style="font-size:12px;color:var(--text-muted)"> kg</span></div></div>
+      <div class="stat acc2"><div class="l">Value</div><div class="v">${fmt(r.frac.totalValue,0)}</div></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+      <label class="check-inline" style="margin:0;padding:0;"><input type="checkbox" id="fracAutoChk" ${state.fracAuto?"checked":""}> Auto-fill leftover capacity</label>
+      ${state.fracAuto? "" : `<input type="number" id="fracOverride" value="${state.fracCapacityOverride}" style="max-width:110px;" min="0">`}
+    </div>
+    ${ r.frac.alloc.length ? `<div class="tbl-wrap"><table><thead><tr><th>Resource</th><th class="num">Value/kg</th><th class="num">Taken (kg)</th><th class="num">% of stock</th><th class="num">Value</th></tr></thead><tbody>${fracRows}</tbody></table></div>` : `<div class="empty">No splittable resources entered.</div>` }`;
+
+  renderKnapTrace(r);
+  renderFracTrace(r);
+
+  $("#fracAutoChk")?.addEventListener("change", e=>{ state.fracAuto = e.target.checked; recompute(); });
+  $("#fracOverride")?.addEventListener("change", e=>{ state.fracCapacityOverride = Number(e.target.value)||0; recompute(); });
+}
+
+function renderKnapTrace(r){
+  const el = $("#knapTrace");
+  const {un} = classified();
+  const knap = r.knap;
+  if(un.length===0){ el.innerHTML = `<div class="empty">Add an unsplittable resource to see how 0/1 Knapsack decides.</div>`; return; }
+  const cap = knap.capacity;
+
+  // Step 1: items on offer
+  const itemRows = un.map(it=>`<tr>
+      <td>${esc(it.name)}</td><td class="num">${fmt(it.weight,0)} kg</td><td class="num">${fmt(it.value,0)}</td>
+      <td class="num">${fmt(it.weight>0?it.value/it.weight:0,2)}/kg</td>
+    </tr>`).join("");
+
+  // Step 2: backtrack through the table — last item first, exactly how the answer was reconstructed
+  const steps = [];
+  let c = cap;
+  for(let i=un.length;i>=1;i--){
+    const it = un[i-1];
+    const w = Math.round(it.weight);
+    const skip = knap.dp[i-1][c];
+    const fits = w<=c;
+    const take = fits ? knap.dp[i-1][c-w] + it.value : null;
+    const included = knap.dp[i][c] !== skip;
+    steps.push({ step: un.length-i+1, name: it.name, weight: it.weight, capBefore: c, skip, take, fits, included });
+    if(included) c -= w;
+  }
+  const stepRows = steps.map(s=>`<tr>
+      <td class="num">${s.step}</td>
+      <td>${esc(s.name)}</td>
+      <td class="num">${fmt(s.capBefore,0)} kg</td>
+      <td class="num">${fmt(s.skip,0)}</td>
+      <td class="num">${s.fits? fmt(s.take,0) : `<span style="color:var(--text-muted);">doesn't fit</span>`}</td>
+      <td>${s.included? `<span class="pill acc">included ✓</span>` : `<span class="pill neutral">excluded</span>`}</td>
+      <td class="num">${fmt(s.included? s.capBefore-Math.round(s.weight) : s.capBefore,0)} kg</td>
+    </tr>`).join("");
+
+  // Step 3: the DP table itself, with the backtracked path highlighted
+  let dpSection;
+  if(cap===0){
+    dpSection = `<div class="empty">Truck capacity is 0 kg — nothing to fit.</div>`;
+  } else {
+    const maxCols = 32;
+    const step = Math.max(1, Math.ceil((cap+1)/maxCols));
+    const cols = [];
+    for(let cc=0;cc<=cap;cc+=step) cols.push(cc);
+    if(cols[cols.length-1] !== cap) cols.push(cap);
+    const pathCells = new Set();
+    let pc = cap;
+    for(let i=un.length;i>=1;i--){
+      pathCells.add(i+":"+pc);
+      if(knap.dp[i][pc] !== knap.dp[i-1][pc]) pc -= Math.round(un[i-1].weight);
+    }
+    pathCells.add("0:"+pc);
+    let maxVal = 0;
+    for(const row of knap.dp) for(const v of row) if(v>maxVal) maxVal=v;
+    let head = `<tr><th class="rowhead">item \\ kg</th>` + cols.map(cc=>`<th class="num wcol">${cc}</th>`).join("") + `</tr>`;
+    let body = "";
+    for(let i=0;i<=un.length;i++){
+      const label = i===0 ? "∅" : esc(un[i-1].name)+` <span style="color:var(--text-muted);font-weight:400;">(${Math.round(un[i-1].weight)}kg, ${fmt(un[i-1].value,0)})</span>`;
+      body += `<tr><td class="rowhead">${label}</td>` + cols.map(cc=>{
+        const v = knap.dp[i][cc];
+        const isPath = pathCells.has(i+":"+cc);
+        const alpha = maxVal>0 ? (0.06+0.5*(v/maxVal)) : 0;
+        const style = isPath ? "" : `style="background:rgba(217,96,15,${alpha.toFixed(3)})"`;
+        return `<td class="cell${isPath?" path":""}" ${style}>${fmt(v,0)}</td>`;
+      }).join("") + `</tr>`;
+    }
+    dpSection = `<div class="tbl-wrap"><table class="dp-tbl"><thead>${head}</thead><tbody>${body}</tbody></table></div>
+      <p class="trace-note" style="margin-top:8px;">${un.length} items × ${cap} kg capacity — showing every ${step} kg. Highlighted cells are the path the decisions above walked through.</p>`;
+  }
+
+  el.innerHTML = `
+    <div class="trace-step"><span class="n">1</span>Items on offer, with value per kg</div>
+    <div class="tbl-wrap"><table><thead><tr><th>Item</th><th class="num">Weight</th><th class="num">Value</th><th class="num">Density</th></tr></thead><tbody>${itemRows}</tbody></table></div>
+
+    <div class="trace-step"><span class="n">2</span>Backtracking the table's decisions, last item first</div>
+    <p class="trace-note">At each step the DP compares leaving the item out (keep the table's existing best) against taking it (its value plus the best that fit in the remaining capacity), and keeps the larger.</p>
+    <div class="tbl-wrap"><table><thead><tr><th>Step</th><th>Item</th><th class="num">Capacity before</th><th class="num">Leave out →</th><th class="num">Take it →</th><th>Decision</th><th class="num">Capacity after</th></tr></thead><tbody>${stepRows}</tbody></table></div>
+
+    <div class="trace-step"><span class="n">3</span>The full DP table</div>
+    ${dpSection}
+  `;
+}
+
+function renderFracTrace(r){
+  const el = $("#fracTrace");
+  const frac = r.frac;
+  if(!frac.alloc.length){ el.innerHTML = `<div class="empty">Add a splittable resource to see how Fractional Knapsack fills the truck.</div>`; return; }
+
+  const rankRows = frac.alloc.map((a,i)=>`<tr>
+      <td class="num">${i+1}</td><td>${esc(a.name)}</td>
+      <td class="num">${fmt(a.weight,0)} kg</td><td class="num">${fmt(a.value,0)}</td>
+      <td class="num">${fmt(a.density,2)}/kg</td>
+    </tr>`).join("");
+
+  let remaining = frac.capacity;
+  const fillRows = frac.alloc.map((a,i)=>{
+    const before = remaining;
+    remaining = Math.max(0, remaining - a.takenWeight);
+    return `<tr>
+      <td class="num">${i+1}</td><td>${esc(a.name)}</td>
+      <td class="num">${fmt(a.density,2)}/kg</td>
+      <td class="num">${fmt(before,1)} kg</td>
+      <td class="num">${fmt(a.takenWeight,1)} kg${a.fraction>0 && a.fraction<1 ? ` <span class="pill warn">${fmt(a.fraction*100,0)}%</span>` : (a.takenWeight>0 ? ` <span class="pill good">100%</span>` : ` <span class="pill neutral">0%</span>`)}</td>
+      <td class="num">${fmt(remaining,1)} kg</td>
+    </tr>`;
+  }).join("");
+
+  el.innerHTML = `
+    <div class="trace-step"><span class="n">1</span>Rank every bulk resource by value per kg</div>
+    <p class="trace-note">Unlike 0/1 Knapsack, a fraction of any resource can be taken — so the greedy choice (steepest value density first) is provably optimal.</p>
+    <div class="tbl-wrap"><table><thead><tr><th>Rank</th><th>Resource</th><th class="num">Stock available</th><th class="num">Value available</th><th class="num">Density</th></tr></thead><tbody>${rankRows}</tbody></table></div>
+
+    <div class="trace-step"><span class="n">2</span>Pour in each resource, richest first, until the capacity runs dry</div>
+    <div class="tbl-wrap"><table><thead><tr><th>Rank</th><th>Resource</th><th class="num">Density</th><th class="num">Capacity before</th><th class="num">Taken</th><th class="num">Capacity after</th></tr></thead><tbody>${fillRows}</tbody></table></div>
+    <p class="trace-note">${frac.alloc.some(a=>a.fraction>0 && a.fraction<1) ? "Capacity ran out mid-resource — that item was split, and everything ranked after it gets none." : (remaining<=0 ? "Capacity was used up exactly on whole items — no split needed." : "All available stock fit within the capacity, with room to spare.")}</p>
+  `;
+}
+
+/* --- Map tab --- */
+function svgPos(n){ return {x:n.x, y:n.y}; }
+
+function renderMap(){
+  const svg = $("#mapSvg");
+  const routeSet = new Set();
+  const r = state.results;
+  if(r.tsp && r.tsp.order){
+    for(let i=0;i<r.tsp.order.length-1;i++){
+      routeSet.add(edgeKeyDirless(r.tsp.order[i], r.tsp.order[i+1]));
+    }
+  }
+
+  let edgesSvg = "";
+  state.edges.forEach(e=>{
+    const na = state.nodes.find(n=>n.id===e.a), nb = state.nodes.find(n=>n.id===e.b);
+    if(!na||!nb) return;
+    const mx=(na.x+nb.x)/2, my=(na.y+nb.y)/2;
+    const isRoute = !e.blocked && routeSet.has(edgeKeyDirless(e.a,e.b));
+    const cls = "edge-line" + (e.blocked? " blocked":"") + (isRoute? " route":"");
+    edgesSvg += `<line class="${cls}" x1="${na.x}" y1="${na.y}" x2="${nb.x}" y2="${nb.y}" data-edge="${e.id}"></line>`;
+    edgesSvg += `<rect x="${mx-14}" y="${my-9}" width="28" height="14" rx="3" fill="var(--surface)" opacity="0.85"></rect>`;
+    edgesSvg += `<text class="edge-dist" x="${mx}" y="${my+3}" text-anchor="middle">${e.dist}</text>`;
+    if(e.blocked) edgesSvg += `<text class="edge-x" x="${mx}" y="${my-12}" text-anchor="middle">✕</text>`;
+  });
+
+  let nodesSvg = "";
+  state.nodes.forEach(n=>{
+    const isReq = n.type==="warehouse" || state.destinations.has(n.id);
+    nodesSvg += `<g class="node" data-node="${n.id}" style="cursor:grab;" transform="translate(${n.x},${n.y})">
+      <circle class="node-circle ${n.type==='warehouse'?'warehouse':''}" r="20" opacity="${isReq?1:0.55}"></circle>
+      <text class="node-icon" text-anchor="middle" y="6">${TYPE_ICON[n.type]||"📍"}</text>
+      <text class="node-label" text-anchor="middle" y="34">${esc(n.name)}</text>
+    </g>`;
+  });
+
+  svg.innerHTML = edgesSvg + nodesSvg;
+  wireNodeDrag();
+
+  // dest list
+  const nonW = state.nodes.filter(n=>n.type!=="warehouse");
+  $("#destList").innerHTML = nonW.length? nonW.map(n=>`
+    <div class="dest-row">
+      <input type="checkbox" data-dest="${n.id}" ${state.destinations.has(n.id)?"checked":""}>
+      <span class="lbl">${TYPE_ICON[n.type]} ${esc(n.name)}</span>
+      <button class="btn ghost sm" data-del-node="${n.id}" title="Remove location">✕</button>
+    </div>`).join("") : `<div class="empty">No relief locations yet.</div>`;
+
+  // edge list
+  $("#edgeList").innerHTML = state.edges.length? state.edges.map(e=>`
+    <div class="edge-row">
+      <span class="lbl">${esc(nodeName(e.a))} ↔ ${esc(nodeName(e.b))}</span>
+      <span class="dist">${e.dist} km</span>
+      <button class="toggle ${e.blocked?"off":""}" data-toggle-edge="${e.id}" title="${e.blocked?"Blocked - click to reopen":"Open - click to block"}"></button>
+      <button class="btn ghost sm" data-del-edge="${e.id}">✕</button>
+    </div>`).join("") : `<div class="empty">No roads yet.</div>`;
+
+  // node selects for add-edge form
+  const opts = state.nodes.map(n=>`<option value="${n.id}">${esc(n.name)}</option>`).join("");
+  $("#edgeFrom").innerHTML = opts;
+  $("#edgeTo").innerHTML = opts;
+
+  // disaster target select: individual roads + whole locations
+  const roadOpts = state.edges.map(e=>`<option value="edge:${e.id}" ${e.blocked?"disabled":""}>Road: ${esc(nodeName(e.a))} ↔ ${esc(nodeName(e.b))}${e.blocked?" (already blocked)":""}</option>`).join("");
+  const areaOpts = state.nodes.filter(n=>n.type!=="warehouse").map(n=>`<option value="node:${n.id}">Area: ${esc(n.name)} (cuts off all its roads)</option>`).join("");
+  $("#disasterTarget").innerHTML = `<optgroup label="Specific road">${roadOpts || "<option disabled>No roads yet</option>"}</optgroup><optgroup label="Entire location">${areaOpts || "<option disabled>No locations yet</option>"}</optgroup>`;
+
+  // blockage banner
+  const bb = $("#blockBanner");
+  if(state.lastBlockChange){
+    const bc = state.lastBlockChange;
+    const icon = bc.disaster ? bc.disaster.split(" ")[0] : "🚧";
+    let verb;
+    if(bc.disaster) verb = `${esc(bc.disaster)} reported at ${esc(bc.edgeLabel)}`;
+    else if(bc.edgeLabel==="all roads") verb = `All roads reopened`;
+    else verb = `Road ${esc(bc.edgeLabel)} ${bc.blocked?"blocked":"reopened"}`;
+    if(bc.after===Infinity || bc.after===undefined){
+      bb.innerHTML = `<div class="callout crit"><span class="ic">${icon}</span><div class="body"><b>${verb}.</b> No feasible route remains with the current destinations — reopen a road or drop a stop.</div></div>`;
+    } else if(bc.before!==null && isFinite(bc.before)){
+      const delta = bc.after - bc.before;
+      bb.innerHTML = `<div class="callout ${delta>0?'crit':'good'}"><span class="ic">${icon}</span><div class="body"><b>${verb}.</b> Route recalculated.<br>
+        Previous distance: <b>${fmt(bc.before,1)} km</b> &nbsp;→&nbsp; New distance: <b>${fmt(bc.after,1)} km</b> &nbsp;(<b>${delta>=0?"+":""}${fmt(delta,1)} km</b>)</div></div>`;
+    } else {
+      bb.innerHTML = `<div class="callout good"><span class="ic">${icon}</span><div class="body"><b>${verb}.</b> Route recalculated — distance now <b>${fmt(bc.after,1)} km</b>.</div></div>`;
+    }
+  } else { bb.innerHTML = ""; }
+
+  // route output
+  const ro = $("#routeOut");
+  if(r.tsp && r.tsp.order){
+    ro.innerHTML = `
+      <div class="route-strip">${r.tsp.order.map((id,i)=>`${i>0?'<span class="arrow">→</span>':""}<span class="stop ${id==='w'?'wh':''}">${esc(nodeName(id))}</span>`).join("")}</div>
+      <p style="margin-top:12px;font-size:13.5px;">Total distance: <b class="num" style="font-family:'IBM Plex Mono',monospace;">${fmt(r.tsp.distance,1)} km</b> · ${r.tsp.n} stops (incl. warehouse) · ${r.tsp.states} DP states evaluated in ${r.tsp.timeMs.toFixed(3)} ms</p>`;
+    $("#tspHint").textContent = `Dynamic Programming, O(n²·2ⁿ)`;
+  } else {
+    ro.innerHTML = `<div class="empty">No feasible route — every path to a required stop is blocked. Reopen a road or drop a destination.</div>`;
+  }
+  if(state.lastRunAt){
+    $("#lastRunNote").textContent = "Last recalculated at "+new Date(state.lastRunAt).toLocaleTimeString();
+  }
+  const routeCard = ro.closest(".card");
+  if(routeCard){ routeCard.classList.remove("flash-update"); void routeCard.offsetWidth; routeCard.classList.add("flash-update"); }
+
+  renderTspTrace();
+}
+
+function renderTspTrace(){
+  const el = $("#tspTrace");
+  const tsp = state.results.tsp;
+  if(!tsp || !tsp.rawOrder){
+    el.innerHTML = `<div class="empty">No feasible route to trace — reopen a road or drop a destination.</div>`;
+    return;
+  }
+  if(tsp.n<=1){
+    el.innerHTML = `<div class="empty">Select at least one must-visit destination to see the algorithm trace.</div>`;
+    return;
+  }
+  const labels = tsp.requiredIds.map(nodeName);
+  const n = tsp.n;
+
+  // Step 1: shortest-path distance matrix among required stops
+  let matBody = "";
+  for(let i=0;i<n;i++){
+    matBody += `<tr><td class="rowhead">${esc(labels[i])}</td>` + labels.map((_,j)=>{
+      if(i===j) return `<td class="num self">–</td>`;
+      const v = tsp.distSub[i][j];
+      return `<td class="num">${isFinite(v)?fmt(v,0):"∞"}</td>`;
+    }).join("") + `</tr>`;
+  }
+  const matHead = `<tr><th class="rowhead">from \\ to</th>${labels.map(l=>`<th class="num">${esc(l)}</th>`).join("")}</tr>`;
+
+  // Step 2: leg-by-leg reconstruction of the chosen tour
+  let cum = 0;
+  const legRows = [];
+  for(let k=0;k<tsp.order.length-1;k++){
+    const from = tsp.order[k], to = tsp.order[k+1];
+    const fi = tsp.requiredIds.indexOf(from), ti = tsp.requiredIds.indexOf(to);
+    const dist = tsp.distSub[fi][ti];
+    cum += isFinite(dist) ? dist : 0;
+    legRows.push(`<tr>
+      <td class="num">${k+1}</td>
+      <td>${esc(nodeName(from))} <span class="arrow">→</span> ${esc(nodeName(to))}</td>
+      <td class="num">${isFinite(dist)?fmt(dist,0):"∞"} km</td>
+      <td class="num">${fmt(cum,0)} km</td>
+    </tr>`);
+  }
+
+  // Step 3: DP state table (only when small enough to show in full)
+  let dpSection;
+  const FULL = tsp.full;
+  if(tsp.dp && FULL>0 && FULL<=32){
+    const pathStates = new Set();
+    let mask=0;
+    for(let k=1;k<tsp.order.length-1;k++){
+      const idx = tsp.requiredIds.indexOf(tsp.order[k]);
+      mask |= (1<<(idx-1));
+      pathStates.add(mask+":"+idx);
+    }
+    let maxFinite = 0;
+    for(let m=1;m<FULL;m++) for(let i=1;i<n;i++){ const v=tsp.dp[m][i]; if(isFinite(v) && v>maxFinite) maxFinite=v; }
+    const nodeCols = Array.from({length:n-1},(_,i)=>i+1);
+    let head = `<tr><th class="rowhead">subset visited</th>${nodeCols.map(i=>`<th>ends at ${esc(labels[i])}</th>`).join("")}</tr>`;
+    let body = "";
+    for(let m=1;m<FULL;m++){
+      const members = nodeCols.filter(i=> m & (1<<(i-1))).map(i=>labels[i]);
+      body += `<tr><td class="rowhead">{ ${members.map(esc).join(", ")} }</td>` + nodeCols.map(i=>{
+        if(!(m & (1<<(i-1)))) return `<td class="num self">–</td>`;
+        const v = tsp.dp[m][i];
+        if(!isFinite(v)) return `<td class="num">∞</td>`;
+        const p = tsp.parent[m][i];
+        const via = p===-1 ? "Warehouse" : labels[p];
+        const isPath = pathStates.has(m+":"+i);
+        const alpha = maxFinite>0 ? (0.06+0.4*(v/maxFinite)) : 0;
+        const style = isPath? "" : `style="background:rgba(31,122,184,${alpha.toFixed(3)})"`;
+        return `<td class="cell${isPath?" path":""}" ${style}><b>${fmt(v,0)}</b><br><span style="font-size:10px;color:var(--text-muted);">via ${esc(via)}</span></td>`;
+      }).join("") + `</tr>`;
+    }
+    dpSection = `<div class="tbl-wrap"><table class="dp-tbl">${`<thead>${head}</thead>`}<tbody>${body}</tbody></table></div>
+      <p class="trace-note" style="margin-top:8px;">Each row is a subset of stops already visited; each cell is the cheapest cost to reach that subset ending at that stop, and who came before it. Highlighted cells lie on the final optimal path.</p>`;
+  } else {
+    dpSection = `<div class="empty">${FULL} subset-states × ${n-1} endpoints is too many to display as a table — showing the reconstructed path above instead. (The DP still evaluates all of them: ${tsp.states} transitions in ${tsp.timeMs.toFixed(3)} ms.)</div>`;
+  }
+
+  el.innerHTML = `
+    <div class="trace-step"><span class="n">1</span>Direct road distance between every required stop</div>
+    <p class="trace-note">Every location has a direct road to every other. A blocked road just removes that one link — shown as ∞ below — so the DP must pick a tour that avoids it.</p>
+    <div class="tbl-wrap"><table class="dp-tbl mat-tbl"><thead>${matHead}</thead><tbody>${matBody}</tbody></table></div>
+
+    <div class="trace-step"><span class="n">2</span>Building the tour stop by stop, always keeping the cheapest way to reach each combination of stops</div>
+    <p class="trace-note">Warehouse → ${labels.slice(1).join(", ")||"—"} → back to Warehouse. With ${n-1} required stops (O(n²·2ⁿ)), the DP compared ${tsp.states} candidate transitions to find this order.</p>
+    <div class="tbl-wrap"><table><thead><tr><th>Leg</th><th>Road taken</th><th class="num">Distance</th><th class="num">Running total</th></tr></thead><tbody>${legRows.join("")}</tbody></table></div>
+
+    <div class="trace-step"><span class="n">3</span>Dynamic-programming states behind that decision</div>
+    ${dpSection}
+  `;
+}
+
+function edgeKeyDirless(a,b){ return [a,b].sort().join("|"); }
+
+function wireNodeDrag(){
+  const svg = $("#mapSvg");
+  $$(".node", svg).forEach(g=>{
+    g.addEventListener("pointerdown", e=>{
+      state.dragging = g.getAttribute("data-node");
+    });
+  });
+}
+function wireMapSvgOnce(){
+  const svg = $("#mapSvg");
+  svg.addEventListener("pointermove", e=>{
+    if(!state.dragging) return;
+    const rect = svg.getBoundingClientRect();
+    const vb = svg.viewBox.baseVal;
+    const x = (e.clientX-rect.left)/rect.width*vb.width;
+    const y = (e.clientY-rect.top)/rect.height*vb.height;
+    const n = state.nodes.find(n=>n.id===state.dragging);
+    if(n){ n.x = clamp(x,24,vb.width-24); n.y = clamp(y,24,vb.height-24); renderMapPositionsOnly(); }
+  });
+  svg.addEventListener("pointerup", ()=>{ state.dragging=null; });
+  svg.addEventListener("pointerleave", ()=>{ state.dragging=null; });
+  window.addEventListener("pointerup", ()=>{ state.dragging=null; });
+}
+function renderMapPositionsOnly(){ renderMap(); }
+
+/* --- Dashboard tab --- */
+function renderDashboard(){
+  const r = state.results;
+  if(!r.knap) return;
+  const totalWeight = r.knap.totalWeight + r.frac.totalWeight;
+  const totalValue = r.knap.totalValue + r.frac.totalValue;
+  $("#dashResources").innerHTML = [
+    ["Truck capacity", fmt(state.truckCapacity,0)+" kg"],
+    ["Total weight selected", fmt(totalWeight,1)+" kg"],
+    ["Total value / priority", fmt(totalValue,0)],
+    ["Unused capacity", fmt(state.truckCapacity-totalWeight,1)+" kg"],
+    ["Resources selected", (r.knap.selected.length + r.frac.alloc.filter(a=>a.takenWeight>0).length)+" of "+state.resources.length],
+    ["Value density (avg)", fmt(totalWeight>0?totalValue/totalWeight:0,2)+" /kg"],
+  ].map(([l,v])=>`<div class="stat acc"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("");
+
+  $("#dashRoute").innerHTML = [
+    ["Locations", state.nodes.length],
+    ["Roads", state.edges.length+" ("+state.edges.filter(e=>e.blocked).length+" blocked)"],
+    ["Must-visit stops", state.destinations.size],
+    ["Current route distance", (r.tsp&&isFinite(r.tsp.distance))?fmt(r.tsp.distance,1)+" km":"No route"],
+    ["Distance after last block", state.lastBlockChange && isFinite(state.lastBlockChange.after)? (state.lastBlockChange.after-state.lastBlockChange.before>=0?"+":"")+fmt(state.lastBlockChange.after-state.lastBlockChange.before,1)+" km" : "—"],
+    ["Blocked roads", state.edges.filter(e=>e.blocked).length],
+  ].map(([l,v])=>`<div class="stat acc2"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("");
+
+  const p = r.perf;
+  $("#perfBody").innerHTML = `
+    <tr><td>0/1 Knapsack</td><td class="mono">O(n·W)</td><td class="num">${p.knap.n} items</td><td class="num">${fmt(p.knap.ops,0)}</td><td class="num">${p.knap.timeMs.toFixed(3)} ms</td></tr>
+    <tr><td>Fractional Knapsack</td><td class="mono">O(n log n)</td><td class="num">${p.frac.n} items</td><td class="num">${p.frac.ops}</td><td class="num">${p.frac.timeMs.toFixed(3)} ms</td></tr>
+    <tr><td>TSP (Dynamic Programming)</td><td class="mono">O(n²·2ⁿ)</td><td class="num">${p.tsp.n} stops</td><td class="num">${p.tsp.states}</td><td class="num">${p.tsp.timeMs.toFixed(3)} ms</td></tr>`;
+}
+
+/* --- Report tab --- */
+function renderReport(){
+  const r = state.results;
+  if(!r.knap){ $("#reportDoc").innerHTML = `<div class="empty">Run the planner to generate a report.</div>`; return; }
+  const totalLoad = r.knap.totalWeight + r.frac.totalWeight;
+  const blocked = state.edges.filter(e=>e.blocked);
+  const bc = state.lastBlockChange;
+  $("#reportDoc").innerHTML = `
+    <div class="report-band">
+      <div class="eyebrow">Relief Convoy · Mission Report</div>
+      <h2>Disaster Relief Delivery Summary</h2>
+    </div>
+    <div class="report-body">
+      <div class="report-grid">
+        <div class="report-block"><h4>Truck</h4>
+          <div class="report-line"><span class="k">Capacity</span><span class="v">${fmt(state.truckCapacity,0)} kg</span></div>
+          <div class="report-line"><span class="k">Load</span><span class="v">${fmt(totalLoad,1)} kg</span></div>
+          <div class="report-line"><span class="k">Unused</span><span class="v">${fmt(state.truckCapacity-totalLoad,1)} kg</span></div>
+        </div>
+        <div class="report-block"><h4>Resource optimization</h4>
+          <div class="report-line"><span class="k">0/1 Knapsack value</span><span class="v">${fmt(r.knap.totalValue,0)}</span></div>
+          <div class="report-line"><span class="k">Fractional value</span><span class="v">${fmt(r.frac.totalValue,0)}</span></div>
+          <div class="report-line"><span class="k">Items selected</span><span class="v">${r.knap.selected.length} whole + ${r.frac.alloc.filter(a=>a.takenWeight>0).length} bulk</span></div>
+        </div>
+        <div class="report-block"><h4>Delivery</h4>
+          <div class="report-line"><span class="k">Locations</span><span class="v">${state.nodes.length}</span></div>
+          <div class="report-line"><span class="k">Must-visit stops</span><span class="v">${state.destinations.size}</span></div>
+          <div class="report-line"><span class="k">Optimal distance</span><span class="v">${(r.tsp&&isFinite(r.tsp.distance))?fmt(r.tsp.distance,1)+" km":"infeasible"}</span></div>
+        </div>
+        <div class="report-block"><h4>Road status</h4>
+          <div class="report-line"><span class="k">Blocked roads</span><span class="v">${blocked.length}</span></div>
+          <div class="report-line"><span class="k">Distance before</span><span class="v">${bc && bc.before!==null && isFinite(bc.before)? fmt(bc.before,1)+" km":"—"}</span></div>
+          <div class="report-line"><span class="k">Distance after</span><span class="v">${bc && isFinite(bc.after)? fmt(bc.after,1)+" km":"—"}</span></div>
+          <div class="report-line"><span class="k">Increase</span><span class="v">${bc && bc.before!==null && isFinite(bc.before) && isFinite(bc.after) ? (bc.after-bc.before>=0?"+":"")+fmt(bc.after-bc.before,1)+" km" : "—"}</span></div>
+        </div>
+      </div>
+      <div class="report-block">
+        <h4>Route</h4>
+        ${ (r.tsp&&r.tsp.order) ? `<div class="route-strip">${r.tsp.order.map((id,i)=>`${i>0?'<span class="arrow">→</span>':""}<span class="stop ${id==='w'?'wh':''}">${esc(nodeName(id))}</span>`).join("")}</div>` : `<p>No feasible route with current road status.</p>` }
+      </div>
+      <div class="report-block">
+        <h4>Algorithms used</h4>
+        <div class="algo-check"><span class="ic">✓</span> 0/1 Knapsack — unsplittable resource selection</div>
+        <div class="algo-check"><span class="ic">✓</span> Fractional Knapsack — bulk resource allocation</div>
+        <div class="algo-check"><span class="ic">✓</span> TSP using Dynamic Programming — optimal delivery route</div>
+      </div>
+    </div>`;
+}
+
+/* ---------------- event wiring ---------------- */
+function switchTab(tab){
+  $$(".nav-btn").forEach(b=> b.classList.toggle("active", b.dataset.tab===tab));
+  $$(".panel").forEach(p=> p.classList.toggle("active", p.id==="panel-"+tab));
+}
+$("#nav").addEventListener("click", e=>{
+  const btn = e.target.closest(".nav-btn");
+  if(btn) switchTab(btn.dataset.tab);
+});
+
+$("#addResBtn").addEventListener("click", ()=>{
+  const name = $("#rName").value.trim();
+  if(!name) return;
+  state.resources.push({
+    id: uid("r"), name,
+    weight: Number($("#rWeight").value)||1,
+    priority: Number($("#rPriority").value)||0,
+    qty: Number($("#rQty").value)||1,
+    splittable: $("#rSplit").checked,
+  });
+  $("#rName").value=""; $("#rWeight").value=10; $("#rPriority").value=10; $("#rQty").value=1; $("#rSplit").checked=false;
+  recompute();
+});
+$("#manifestBody").addEventListener("click", e=>{
+  const id = e.target.closest("[data-del-res]")?.getAttribute("data-del-res");
+  if(id){ state.resources = state.resources.filter(r=>r.id!==id); recompute(); }
+});
+$("#truckCap").addEventListener("change", e=>{
+  state.truckCapacity = Math.max(0, Number(e.target.value)||0);
+  recompute();
+});
+
+$("#addNodeBtn").addEventListener("click", ()=>{
+  const name = $("#nodeName").value.trim();
+  if(!name) return;
+  const type = $("#nodeType").value;
+  const x = 100+Math.random()*440, y = 60+Math.random()*300;
+  const node = {id:uid("n"), name, type, x, y};
+  // keep the network complete: connect the new location directly to every existing one
+  state.nodes.forEach(other=>{
+    const dx = other.x-x, dy = other.y-y;
+    const dist = Math.max(5, Math.round(Math.hypot(dx,dy)/12));
+    state.edges.push({id:uid("e"), a:node.id, b:other.id, dist, blocked:false});
+  });
+  state.nodes.push(node);
+  $("#nodeName").value="";
+  recompute();
+});
+$("#addEdgeBtn").addEventListener("click", ()=>{
+  const a = $("#edgeFrom").value, b = $("#edgeTo").value;
+  const dist = Number($("#edgeDist").value)||1;
+  if(!a||!b||a===b) return;
+  const existing = directEdge(a,b);
+  if(existing){ existing.dist = dist; } else { state.edges.push({id:uid("e"), a, b, dist, blocked:false}); }
+  recompute();
+});
+$("#runTspBtn").addEventListener("click", ()=> recompute());
+
+$("#triggerDisasterBtn").addEventListener("click", ()=>{
+  const target = $("#disasterTarget").value;
+  const disasterType = $("#disasterType").value;
+  if(!target) return;
+  const affected = [];
+  if(target.startsWith("edge:")){
+    const id = target.slice(5);
+    const edge = state.edges.find(x=>x.id===id);
+    if(edge && !edge.blocked){ edge.blocked = true; affected.push(edge); }
+  } else if(target.startsWith("node:")){
+    const nid = target.slice(5);
+    state.edges.forEach(e=>{ if((e.a===nid || e.b===nid) && !e.blocked){ e.blocked = true; affected.push(e); } });
+  }
+  if(!affected.length) return;
+  const label = affected.map(e=> nodeName(e.a)+" ↔ "+nodeName(e.b)).join(", ");
+  recompute({blockToggle:{label, blocked:true, disaster:disasterType}});
+});
+
+$("#clearBlocksBtn").addEventListener("click", ()=>{
+  const hadBlocked = state.edges.some(e=>e.blocked);
+  if(!hadBlocked){ recompute(); return; }
+  state.edges.forEach(e=> e.blocked = false);
+  recompute({blockToggle:{label:"all roads", blocked:false}});
+});
+
+$("#destList").addEventListener("change", e=>{
+  const id = e.target.getAttribute("data-dest");
+  if(!id) return;
+  if(e.target.checked) state.destinations.add(id); else state.destinations.delete(id);
+  recompute();
+});
+$("#destList").addEventListener("click", e=>{
+  const del = e.target.closest("[data-del-node]");
+  if(!del) return;
+  const id = del.getAttribute("data-del-node");
+  state.nodes = state.nodes.filter(n=>n.id!==id);
+  state.edges = state.edges.filter(e=>e.a!==id && e.b!==id);
+  state.destinations.delete(id);
+  recompute();
+});
+$("#edgeList").addEventListener("click", e=>{
+  const tog = e.target.closest("[data-toggle-edge]");
+  if(tog){
+    const id = tog.getAttribute("data-toggle-edge");
+    const edge = state.edges.find(x=>x.id===id);
+    edge.blocked = !edge.blocked;
+    recompute({blockToggle:{label: nodeName(edge.a)+" ↔ "+nodeName(edge.b), blocked: edge.blocked}});
+    return;
+  }
+  const del = e.target.closest("[data-del-edge]");
+  if(del){
+    const id = del.getAttribute("data-del-edge");
+    state.edges = state.edges.filter(x=>x.id!==id);
+    recompute();
+  }
+});
+
+$("#printBtn").addEventListener("click", ()=> window.print());
+
+/* ---------------- boot ---------------- */
+wireMapSvgOnce();
+recompute();
+})();
+</script>
